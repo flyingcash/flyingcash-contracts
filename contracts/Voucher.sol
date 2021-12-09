@@ -2,10 +2,13 @@
 pragma solidity ^0.6.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Voucher is ERC20Burnable {
+contract Voucher is ERC20Burnable, Ownable {
 
     address public flyingCash;
+
+    event FlyingCashChanged(address _flyingCash);
 
     modifier onlyFlyingCash {
         require(msg.sender == flyingCash, "Voucher: onlyFlyingCash");
@@ -15,6 +18,12 @@ contract Voucher is ERC20Burnable {
     constructor (address _flyingCash, string memory name_, string memory symbol_) public ERC20(name_, symbol_) {
         require(_flyingCash != address(0), "Voucher: flashCash address is zero");
         flyingCash = _flyingCash;
+    }
+
+    function setFlyingCash(address _flyingCash) public onlyOwner {
+        require(_flyingCash != address(0), "Voucher: flashCash address is zero");
+        flyingCash = _flyingCash;
+        emit FlyingCashChanged(_flyingCash);
     }
     
     /**

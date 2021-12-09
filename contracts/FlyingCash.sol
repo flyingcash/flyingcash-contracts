@@ -4,9 +4,8 @@ pragma solidity ^0.6.0;
 import "./BaseFlyingCash.sol";
 import "./compound/CErc20.sol";
 import "./interface/IFeeManager.sol";
-import "./interface/IMultiAMBErc20ToErc677.sol";
 import "./interface/IFlyingCashAdapter.sol";
-import "./interface/IBurnableMintableERC677Token.sol";
+import "./interface/ITokenBridge.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 // the FlyingCash implement for filda
@@ -51,7 +50,7 @@ contract FlyingCash is BaseFlyingCash {
         voucher.mint(address(this), amount);
         voucher.approve(bridge, amount);
 
-        IMultiAMBErc20ToErc677(bridge).relayTokens(ERC677(address(voucher)), _account, amount);
+        ITokenBridge(bridge).relayTokens(voucher, _account, amount);
     }
 
     /* @dev exchange voucher for token.
@@ -63,18 +62,16 @@ contract FlyingCash is BaseFlyingCash {
         require(_amount != 0, "FlyingCashHeco: amount must greater than 0");
         require(isAcceptVoucher(_voucher), "FlyingCashHeco:  the voucher is not accepted");
 
+        ERC20(_voucher).safeTransferFrom(msg.sender, address(this), _amount);
+
         uint amount = _amount;
-        uint fee;
         if (feeManager != address(0)) {
-            fee = IFeeManager(feeManager).getWithdrawFee(msg.sender, _amount);
+            uint fee = IFeeManager(feeManager).getWithdrawFee(msg.sender, _amount);
             amount = amount.sub(fee);
         }
 
-        ERC20(_voucher).safeTransferFrom(msg.sender, address(this), _amount);
         if (_voucher == address(voucher)) {
             Voucher(_voucher).burn(_amount);
-        } else {
-            IBurnableMintableERC677Token(_voucher).burn(fee);
         }
 
         // redeem from adapter
@@ -84,7 +81,7 @@ contract FlyingCash is BaseFlyingCash {
     }
 
     function getReserve() public view override returns (uint) {
-        uint saveingBalance = IFlyingCashAdapter(adapter).getSavingBalance();
+        uint savingBalance = IFlyingCashAdapter(adapter).getSavingBalance();
         uint borrowBalance = IFlyingCashAdapter(adapter).getSavingBalance();
 
         uint vocherSupply = voucher.totalSupply();
@@ -92,10 +89,10 @@ contract FlyingCash is BaseFlyingCash {
         for (uint8 i = 0; i < voucherSet.length(); i++) {
             address token = voucherSet.at(i);
             if (token == address(voucher)) continue;
-            voucherBalance += ERC20(token).balanceOf(address(this));
+            voucherBalance = voucherBalance.add(ERC20(token).balanceOf(address(this)));
         }
 
-        return saveingBalance.add(voucherBalance).sub(vocherSupply).sub(borrowBalance);
+        return savingBalance.add(voucherBalance).sub(vocherSupply).sub(borrowBalance);
     }
 
     /* @dev withdraw reserve, only owner.
@@ -103,6 +100,7 @@ contract FlyingCash is BaseFlyingCash {
     function withdrawReserve() external override returns (uint) {
         uint reserve = getReserve();
         if (reserve > 0) {
+            IFlyingCashAdapter(adapter).withdraw(reserve);
             lockToken.safeTransfer(owner(), reserve);
         }
         return reserve;

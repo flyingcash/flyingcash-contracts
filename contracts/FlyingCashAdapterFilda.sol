@@ -30,6 +30,8 @@ contract FlyingCashAdapterFilda is IFlyingCashAdapter, FlyingCashAdapterStorage,
         // save to filda
         ERC20(token).approve(ftoken, _amount);
 
+        ERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
+
         uint borrowAmount = getBorrowBalance();
         uint err;
         if (borrowAmount > 0) {
