@@ -18,20 +18,19 @@ contract FlyingCashAdapterFilda is IFlyingCashAdapter, FlyingCashAdapterStorage,
         require(_ftoken != address(0), "FlyingCashAdapterFilda: ftoken is zero address");
         ftoken = _ftoken;
         token = CErc20(ftoken).underlying();
+        ERC20(token).approve(ftoken, uint(-1));
     }
 
-    function setWhitelist(address _account, bool _enable) external override {
+    function setWhitelist(address _account, bool _enable) external override onlyOwner {
         require(_account != address(0), "FlyingCashAdapterFilda: account is zero address");
         whitelist[_account] = _enable;
         emit WhitelistChanged(_account, _enable);
     }
 
     function deposit(uint _amount) external override {
-        // save to filda
-        ERC20(token).approve(ftoken, _amount);
-
         ERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
 
+        // repay borrow or save to filda
         uint borrowAmount = getBorrowBalance();
         uint err;
         if (borrowAmount > 0) {
@@ -70,7 +69,7 @@ contract FlyingCashAdapterFilda is IFlyingCashAdapter, FlyingCashAdapterStorage,
         ERC20(token).safeTransfer(msg.sender, _amount);
     }
 
-    function getSavingBalance() public view override returns (uint) {
+    function getSavingBalance() public override returns (uint) {
         return CErc20(ftoken).balanceOfUnderlying(address(this));
     }
 

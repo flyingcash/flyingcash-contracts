@@ -26,7 +26,7 @@ contract FlyingCashAdapterNoAsset is IFlyingCashAdapter, FlyingCashAdapterStorag
         _mint(msg.sender, _amount);
     }
 
-    function getSavingBalance() public view override returns (uint) {
+    function getSavingBalance() public override returns (uint) {
         return 0;
     }
 

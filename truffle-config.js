@@ -94,6 +94,17 @@ module.exports = {
           networkCheckTimeout: 600000000,
           websockets: true
       },
+
+      esc: {
+          provider: () => new HDWalletProvider(mnemonic, `https://escnode.filda.org`),
+          network_id: "20",
+          chain_id: "20",
+          timeoutBlocks: 300,
+          confirmations: 2,
+          gasPrice: 5000000000,
+          skipDryRun: false,
+          networkCheckTimeout: 600000000
+      },
   },
 
   // Set default mocha options here, use special reporters etc.

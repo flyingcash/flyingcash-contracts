@@ -18,5 +18,5 @@ interface CErc20 {
 
     function comptroller() external view returns (ComptrollerInterface);
     function underlying() external view returns (address);
-    function balanceOfUnderlying(address account) external view returns (uint);
+    function balanceOfUnderlying(address account) external returns (uint);
 }

@@ -18,11 +18,17 @@ interface IFlyingCash {
 
     function setFeeManager(address _feeManager) external;
 
+    function setAdapter(address _adapter) external;
+
     function setNetworkBridge(string calldata _name, address _bridge) external;
 
     function setAcceptVouchers(address[] calldata _vouchers, bool[] calldata _accepts) external;
 
     function isAcceptVoucher(address _token) external view returns(bool);
+
+    function getAcceptVoucherLength() external view returns(uint);
+
+    function getAcceptVoucher(uint8 index) external view returns(address);
 
     /* @dev relay lockToken, mint voucher and bridge voucher to another chain.
     * @param _amount the amount of lockToken
@@ -40,7 +46,7 @@ interface IFlyingCash {
 
     /* @dev get reserve amount in this contract.
     */
-    function getReserve() external view returns (uint);
+    function getReserve() external returns (uint);
 
     /* @dev withdraw reserve, only owner.
     */
@@ -54,6 +60,8 @@ contract FlyingCashStorage {
 
     address public feeManager;
     mapping(string => address) public bridges;
+
+    address public adapter;
 
     EnumerableSet.AddressSet internal voucherSet;
 

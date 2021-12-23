@@ -13,15 +13,7 @@ contract FlyingCash is BaseFlyingCash {
     using Address for address;
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
-
-    address public adapter;
-
-    function init(address _adapter, address _lockToken, address _voucher, address _feeManager) public initializer {
-        BaseFlyingCash.init(_lockToken, _voucher, _feeManager);
-        require(_adapter != address(0), "FlyingCashHeco: adapter is zero address");
-
-        adapter = _adapter;
-    }
+    using SafeERC20 for Voucher;
 
     /* @dev relay lockToken, mint voucher and bridge voucher to another chain.
     * @param _amount the amount of lockToken
@@ -29,10 +21,10 @@ contract FlyingCash is BaseFlyingCash {
     * @param _account recipient address
     */
     function deposit(uint256 _amount, string calldata _network, address _account) external override returns (uint) {
-        require(_amount != 0 && bytes(_network).length > 0 && _account != address(0), "FlyingCashHeco: invalid param");
+        require(_amount != 0 && bytes(_network).length > 0 && _account != address(0), "FlyingCash: invalid param");
 
         address bridge = bridges[_network];
-        require(bridge != address(0), "FlyingCashHeco:  network not exist");
+        require(bridge != address(0), "FlyingCash:  network not exist");
 
         lockToken.safeTransferFrom(msg.sender, address(this), _amount);
 
@@ -59,8 +51,8 @@ contract FlyingCash is BaseFlyingCash {
     * @param _amount amount of voucher
     */
     function withdraw(address _voucher, uint256 _amount) external override returns (uint) {
-        require(_amount != 0, "FlyingCashHeco: amount must greater than 0");
-        require(isAcceptVoucher(_voucher), "FlyingCashHeco:  the voucher is not accepted");
+        require(_amount != 0, "FlyingCash: amount must greater than 0");
+        require(isAcceptVoucher(_voucher), "FlyingCash:  the voucher is not accepted");
 
         ERC20(_voucher).safeTransferFrom(msg.sender, address(this), _amount);
 
@@ -80,9 +72,9 @@ contract FlyingCash is BaseFlyingCash {
         lockToken.safeTransfer(msg.sender, amount);
     }
 
-    function getReserve() public view override returns (uint) {
+    function getReserve() public override returns (uint) {
         uint savingBalance = IFlyingCashAdapter(adapter).getSavingBalance();
-        uint borrowBalance = IFlyingCashAdapter(adapter).getSavingBalance();
+        uint borrowBalance = IFlyingCashAdapter(adapter).getBorrowBalance();
 
         uint vocherSupply = voucher.totalSupply();
         uint voucherBalance;
@@ -95,13 +87,13 @@ contract FlyingCash is BaseFlyingCash {
         return savingBalance.add(voucherBalance).sub(vocherSupply).sub(borrowBalance);
     }
 
-    /* @dev withdraw reserve, only owner.
+    /* @dev withdraw reserve, send to governance.
     */
     function withdrawReserve() external override returns (uint) {
         uint reserve = getReserve();
         if (reserve > 0) {
             IFlyingCashAdapter(adapter).withdraw(reserve);
-            lockToken.safeTransfer(owner(), reserve);
+            lockToken.safeTransfer(governance(), reserve);
         }
         return reserve;
     }
