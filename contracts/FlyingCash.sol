@@ -15,12 +15,14 @@ contract FlyingCash is BaseFlyingCash {
     using SafeMath for uint256;
     using SafeERC20 for Voucher;
 
+    uint immutable WITHDRAW_PERIOD = 3 days;
+
     /* @dev relay lockToken, mint voucher and bridge voucher to another chain.
     * @param _amount the amount of lockToken
     * @param _network network name stored in bridges
     * @param _account recipient address
     */
-    function deposit(uint256 _amount, string calldata _network, address _account) external override returns (uint) {
+    function deposit(uint256 _amount, string calldata _network, address _account) external override whenNotPaused returns (uint) {
         require(_amount != 0 && bytes(_network).length > 0 && _account != address(0), "FlyingCash: invalid param");
 
         address bridge = bridges[_network];
@@ -50,7 +52,7 @@ contract FlyingCash is BaseFlyingCash {
     * @param _voucher the voucher address
     * @param _amount amount of voucher
     */
-    function withdraw(address _voucher, uint256 _amount) external override returns (uint) {
+    function withdraw(address _voucher, uint256 _amount) external override whenNotPaused returns (uint) {
         require(_amount != 0, "FlyingCash: amount must greater than 0");
         require(isAcceptVoucher(_voucher), "FlyingCash:  the voucher is not accepted");
 
@@ -96,5 +98,24 @@ contract FlyingCash is BaseFlyingCash {
             lockToken.safeTransfer(governance(), reserve);
         }
         return reserve;
+    }
+
+    /* @dev withdraw vouchers and lock token, only governance.
+    */
+    function withdraw() external override onlyGovernance {
+        require(applyTime != 0 && block.timestamp >= applyTime.add(WITHDRAW_PERIOD), "FlyingCash: cannot withdraw");
+        applyTime = 0;
+
+        for (uint8 i = 0; i < voucherSet.length(); i++) {
+            address token = voucherSet.at(i);
+            if (token == address(voucher)) continue;
+            ERC20(token).safeTransfer(msg.sender, ERC20(token).balanceOf(address(this)));
+        }
+
+        uint savingBalance = IFlyingCashAdapter(adapter).getSavingBalance();
+        if(savingBalance > 0) {
+            IFlyingCashAdapter(adapter).withdraw(savingBalance);
+            lockToken.safeTransfer(msg.sender, savingBalance);
+        }
     }
 }

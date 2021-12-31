@@ -30,6 +30,9 @@ interface IFlyingCash {
 
     function getAcceptVoucher(uint8 index) external view returns(address);
 
+    function pause() external;
+    function unpause() external;
+
     /* @dev relay lockToken, mint voucher and bridge voucher to another chain.
     * @param _amount the amount of lockToken
     * @param _network network name stored in bridges
@@ -48,9 +51,18 @@ interface IFlyingCash {
     */
     function getReserve() external returns (uint);
 
-    /* @dev withdraw reserve, only owner.
+    /* @dev withdraw reserve, only governance.
     */
     function withdrawReserve() external returns (uint);
+
+    /* @dev apply for withdraw tokens, only governance.
+    */
+    function applyWithdraw() external;
+
+    /* @dev withdraw vouchers and lock token, only governance.
+    */
+    function withdraw() external;
+
 }
 
 contract FlyingCashStorage {
@@ -65,5 +77,5 @@ contract FlyingCashStorage {
 
     EnumerableSet.AddressSet internal voucherSet;
 
-    bool public paused;
+    uint applyTime;
 }

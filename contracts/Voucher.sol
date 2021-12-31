@@ -2,9 +2,9 @@
 pragma solidity ^0.6.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./BoringOwnable.sol";
 
-contract Voucher is ERC20Burnable, Ownable {
+contract Voucher is ERC20Burnable, BoringOwnable {
 
     address public flyingCash;
 

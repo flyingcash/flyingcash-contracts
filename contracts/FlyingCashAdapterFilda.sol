@@ -5,14 +5,16 @@ import "./interface/IFlyingCashAdapter.sol";
 import "./compound/CErc20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./BoringOwnable.sol";
 
-contract FlyingCashAdapterFilda is IFlyingCashAdapter, FlyingCashAdapterStorage, Ownable {
+contract FlyingCashAdapterFilda is IFlyingCashAdapter, FlyingCashAdapterStorage, BoringOwnable {
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
 
     address public ftoken;
     address private token;
+
+    bool public loanOpened = false;
 
     constructor(address _ftoken) public {
         require(_ftoken != address(0), "FlyingCashAdapterFilda: ftoken is zero address");
@@ -25,6 +27,10 @@ contract FlyingCashAdapterFilda is IFlyingCashAdapter, FlyingCashAdapterStorage,
         require(_account != address(0), "FlyingCashAdapterFilda: account is zero address");
         whitelist[_account] = _enable;
         emit WhitelistChanged(_account, _enable);
+    }
+
+    function openLoan(bool _open) external onlyOwner {
+        loanOpened = _open;
     }
 
     function deposit(uint _amount) external override {
@@ -52,7 +58,10 @@ contract FlyingCashAdapterFilda is IFlyingCashAdapter, FlyingCashAdapterStorage,
 
         uint savingAmount = getSavingBalance();
         uint err;
-        if (savingAmount >= _amount) {
+
+        if (!loanOpened || savingAmount >= _amount) {
+            require(_amount <= savingAmount, "FlyingCashAdapterFilda: Insufficient funds in the treasury");
+
             err = CErc20(ftoken).redeemUnderlying(_amount);
             require(err == 0, "FlyingCashAdapterFilda: redeem failed");
             ERC20(token).safeTransfer(msg.sender, _amount);
@@ -82,6 +91,6 @@ contract FlyingCashAdapterFilda is IFlyingCashAdapter, FlyingCashAdapterStorage,
         comptroller.claimComp(address(this));
 
         ERC20 comp = ERC20(comptroller.getCompAddress());
-        comp.safeTransfer(owner(), comp.balanceOf(address(this)));
+        comp.safeTransfer(owner, comp.balanceOf(address(this)));
     }
 }

@@ -3,10 +3,10 @@ pragma solidity ^0.6.0;
 
 import "./interface/IFlyingCashAdapter.sol";
 import "./compound/CErc20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./BoringOwnable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
 
-contract FlyingCashAdapterNoAsset is IFlyingCashAdapter, FlyingCashAdapterStorage, ERC20Burnable, Ownable {
+contract FlyingCashAdapterNoAsset is IFlyingCashAdapter, FlyingCashAdapterStorage, ERC20Burnable, BoringOwnable {
 
     constructor (string memory name_, string memory symbol_) public ERC20(name_, symbol_) {
     }

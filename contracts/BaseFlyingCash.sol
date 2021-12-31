@@ -5,9 +5,10 @@ import "./GovernableInitiable.sol";
 import "./interface/IFlyingCash.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 
 // the FlyingCash implement for filda
-abstract contract BaseFlyingCash is IFlyingCash, FlyingCashStorage, GovernableInitiable {
+abstract contract BaseFlyingCash is IFlyingCash, FlyingCashStorage, GovernableInitiable, Pausable {
     using Address for address;
     using SafeERC20 for ERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -86,6 +87,18 @@ abstract contract BaseFlyingCash is IFlyingCash, FlyingCashStorage, GovernableIn
     function getAcceptVoucher(uint8 index) external view override returns(address) {
         require(index < voucherSet.length(), "FlyingCash: index out of range");
         return voucherSet.at(index);
+    }
+
+    function pause() external override onlyGovernance {
+        _pause();
+    }
+
+    function unpause() external override onlyGovernance {
+        _unpause();
+    }
+
+    function applyWithdraw() external override onlyGovernance {
+        applyTime = block.timestamp;
     }
 
 }
