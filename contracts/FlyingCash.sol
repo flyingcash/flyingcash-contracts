@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.0;
+pragma experimental ABIEncoderV2;
 
 import "./BaseFlyingCash.sol";
 import "./compound/CErc20.sol";
@@ -17,6 +18,15 @@ contract FlyingCash is BaseFlyingCash {
 
     uint immutable WITHDRAW_PERIOD = 3 days;
 
+    function init(address _governance, address _adapter, address _lockToken, address _voucher, address _feeManager) public override initializer {
+        BaseFlyingCash.init(_governance, _adapter, _lockToken, _voucher, _feeManager);
+
+        if (feeManager != address(0)) {
+            lockToken.safeApprove(feeManager, uint(-1));
+        }
+        lockToken.safeApprove(adapter, uint(-1));
+    }
+
     /* @dev relay lockToken, mint voucher and bridge voucher to another chain.
     * @param _amount the amount of lockToken
     * @param _network network name stored in bridges
@@ -31,18 +41,21 @@ contract FlyingCash is BaseFlyingCash {
         lockToken.safeTransferFrom(msg.sender, address(this), _amount);
 
         uint amount = _amount;
+        uint depositeAmount = _amount;
         if (feeManager != address(0)) {
-            uint fee = IFeeManager(feeManager).getDepositeFee(msg.sender, _amount);
+            (uint fee, bool deducted) = IFeeManager(feeManager).getDepositeFee(msg.sender, _network, _amount);
             amount = amount.sub(fee);
+            if (deducted) {
+                depositeAmount = depositeAmount.sub(fee);
+            }
         }
 
         // save to adapter
-        lockToken.approve(adapter, _amount);
-        IFlyingCashAdapter(adapter).deposit(_amount);
+        IFlyingCashAdapter(adapter).deposit(depositeAmount);
 
         // mint token
+        // voucher.mint(msg.sender, amount);
         voucher.mint(address(this), amount);
-        voucher.approve(bridge, amount);
 
         ITokenBridge(bridge).relayTokens(voucher, _account, amount);
     }
@@ -60,7 +73,7 @@ contract FlyingCash is BaseFlyingCash {
 
         uint amount = _amount;
         if (feeManager != address(0)) {
-            uint fee = IFeeManager(feeManager).getWithdrawFee(msg.sender, _amount);
+            (uint fee,) = IFeeManager(feeManager).getWithdrawFee(msg.sender, voucherNetwork[_voucher], _amount);
             amount = amount.sub(fee);
         }
 
@@ -91,13 +104,14 @@ contract FlyingCash is BaseFlyingCash {
 
     /* @dev withdraw reserve, send to governance.
     */
-    function withdrawReserve() external override returns (uint) {
+    function withdrawReserve(uint256 _amount) external override onlyGovernance {
         uint reserve = getReserve();
         if (reserve > 0) {
-            IFlyingCashAdapter(adapter).withdraw(reserve);
-            lockToken.safeTransfer(governance(), reserve);
+            uint amount = reserve > _amount ? _amount : reserve;
+            IFlyingCashAdapter(adapter).withdraw(amount);
+            lockToken.safeTransfer(governance(), amount);
+            emit ReserveAdded(governance(), amount);
         }
-        return reserve;
     }
 
     /* @dev withdraw vouchers and lock token, only governance.
@@ -117,5 +131,13 @@ contract FlyingCash is BaseFlyingCash {
             IFlyingCashAdapter(adapter).withdraw(savingBalance);
             lockToken.safeTransfer(msg.sender, savingBalance);
         }
+    }
+
+    function addReserve(uint _amount) external override onlyGovernance {
+        require(_amount > 0, "FlyingCash: amount is 0");
+        lockToken.safeTransferFrom(msg.sender, address(this), _amount);
+        IFlyingCashAdapter(adapter).deposit(_amount);
+
+        emit ReserveAdded(msg.sender, _amount);
     }
 }

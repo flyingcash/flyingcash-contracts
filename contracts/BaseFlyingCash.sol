@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.0;
+pragma experimental ABIEncoderV2;
 
 import "./GovernableInitiable.sol";
 import "./interface/IFlyingCash.sol";
@@ -11,9 +12,10 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 abstract contract BaseFlyingCash is IFlyingCash, FlyingCashStorage, GovernableInitiable, Pausable {
     using Address for address;
     using SafeERC20 for ERC20;
+    using SafeERC20 for Voucher;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    function init(address _governance, address _adapter, address _lockToken, address _voucher, address _feeManager) public initializer {
+    function init(address _governance, address _adapter, address _lockToken, address _voucher, address _feeManager) public virtual initializer {
         GovernableInitiable.initialize(_governance);
 
         require(_lockToken != address(0) && _voucher != address(0), "FlyingCash: invalid param");
@@ -24,6 +26,7 @@ abstract contract BaseFlyingCash is IFlyingCash, FlyingCashStorage, GovernableIn
         feeManager = _feeManager;
 
         voucherSet.add(_voucher);
+        voucherNetwork[_voucher] = 'default';
 
     }
 
@@ -31,6 +34,11 @@ abstract contract BaseFlyingCash is IFlyingCash, FlyingCashStorage, GovernableIn
         require(_lockToken.isContract(), "FlyingCash: lock token is not contract");
 
         lockToken = ERC20(_lockToken);
+        if (feeManager != address(0)) {
+            lockToken.safeApprove(feeManager, uint(-1));
+        }
+        lockToken.safeApprove(adapter, uint(-1));
+
         emit LockTokenChanged(_lockToken);
     }
 
@@ -39,8 +47,10 @@ abstract contract BaseFlyingCash is IFlyingCash, FlyingCashStorage, GovernableIn
 
         if (voucherSet.contains(address(voucher))) {
             voucherSet.remove(address(voucher));
+            voucherNetwork[address(voucher)] = '';
         }
         voucherSet.add(_voucher);
+        voucherNetwork[_voucher] = 'default';
         voucher = Voucher(_voucher);
         emit VoucherChanged(_voucher);
     }
@@ -48,30 +58,47 @@ abstract contract BaseFlyingCash is IFlyingCash, FlyingCashStorage, GovernableIn
     function setFeeManager(address _feeManager) external override onlyGovernance {
         require(_feeManager.isContract(), "FlyingCash: feeManager is not contract");
 
+        if (feeManager != address(0)) {
+            lockToken.safeApprove(feeManager, 0);
+        }
+
         feeManager = _feeManager;
+        lockToken.safeApprove(feeManager, uint(-1));
         emit FeeManagerChanged(_feeManager);
     }
 
 
     function setAdapter(address _adapter) external override onlyGovernance {
         require(_adapter != address(0), "FlyingCash: adapter is zero address");
+        lockToken.safeApprove(adapter, 0);
         adapter = _adapter;
+        lockToken.safeApprove(adapter, uint(-1));
     }
 
     function setNetworkBridge(string calldata _name, address _bridge) external override onlyGovernance {
         require(bytes(_name).length != 0, "FlyingCash: invalid param");
 
+        if (bridges[_name] != address(0)) {
+            voucher.safeApprove(bridges[_name], 0);
+        }
+
         bridges[_name] = _bridge;
+        if (_bridge != address(0)) {
+            voucher.safeApprove(_bridge, uint(-1));
+        }
+
         emit BridgeChanged(_name, _bridge);
     }
 
-    function setAcceptVouchers(address[] calldata _vouchers, bool[] calldata _accepts) external override onlyGovernance {
+    function setAcceptVouchers(address[] calldata _vouchers, bool[] calldata _accepts, string[] calldata _networks) external override onlyGovernance {
         require(_vouchers.length == _accepts.length, "FlyingCash: invalid param");
         for (uint8 i = 0; i < _vouchers.length; i++) {
             if (_accepts[i] && !voucherSet.contains(_vouchers[i])) {
                 voucherSet.add(_vouchers[i]);
+                voucherNetwork[_vouchers[i]] = _networks[i];
             } else {
                 voucherSet.remove(_vouchers[i]);
+                voucherNetwork[_vouchers[i]] = '';
             }
         }
     }

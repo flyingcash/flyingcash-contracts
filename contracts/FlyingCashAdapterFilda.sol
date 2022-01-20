@@ -16,6 +16,12 @@ contract FlyingCashAdapterFilda is IFlyingCashAdapter, FlyingCashAdapterStorage,
 
     bool public loanOpened = false;
 
+    // liquity in adapter
+    uint256 public liquity;
+
+    event LoanOpend(bool indexed _open);
+    event LiquityChanged(uint256 indexed _liquity);
+
     constructor(address _ftoken) public {
         require(_ftoken != address(0), "FlyingCashAdapterFilda: ftoken is zero address");
         ftoken = _ftoken;
@@ -31,17 +37,54 @@ contract FlyingCashAdapterFilda is IFlyingCashAdapter, FlyingCashAdapterStorage,
 
     function openLoan(bool _open) external onlyOwner {
         loanOpened = _open;
+        emit LoanOpend(_open);
+    }
+
+    function setLiquity(uint256 _liquity) external onlyOwner {
+        liquity = _liquity;
+
+        uint256 balance = ERC20(token).balanceOf(address(this));
+        uint256 saved = CErc20(ftoken).balanceOfUnderlying(address(this));
+
+        uint err;
+        if (balance > liquity) {
+            uint borrowAmount = getBorrowBalance();
+            uint amount = balance.sub(liquity);
+            if (borrowAmount > 0) {
+                err = CErc20(ftoken).repayBorrow(amount > borrowAmount ? borrowAmount : amount);
+                require(err == 0, "FlyingCashAdapterFilda: repayBorrow failed");
+                if (amount > borrowAmount) {
+                    err = CErc20(ftoken).mint(amount.sub(borrowAmount));
+                    require(err == 0, "FlyingCashAdapterFilda: mint failed");
+                }
+            } else {
+                err = CErc20(ftoken).mint(amount);
+                require(err == 0, "FlyingCashAdapterFilda: mint failed");
+            }
+
+        } else if (balance < liquity && saved > 0) {
+            err = CErc20(ftoken).redeemUnderlying(saved > liquity.sub(balance) ? liquity.sub(balance) : saved);
+            require(err == 0, "FlyingCashAdapterFilda: redeemUnderlying failed");
+        }
+
+        emit LiquityChanged(_liquity);
     }
 
     function deposit(uint _amount) external override {
         ERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
 
+        uint256 balance = ERC20(token).balanceOf(address(this));
+        if (balance <= liquity) return;
+
+        uint amount = balance.sub(liquity);
+
         // repay borrow or save to filda
         uint borrowAmount = getBorrowBalance();
         uint err;
         if (borrowAmount > 0) {
-            if (_amount <= borrowAmount) {
-                CErc20(ftoken).repayBorrow(_amount);
+            if (amount <= borrowAmount) {
+                err = CErc20(ftoken).repayBorrow(amount);
+                require(err == 0, "FlyingCashAdapterFilda: repayBorrow failed");
                 return;
             }
 
@@ -49,37 +92,32 @@ contract FlyingCashAdapterFilda is IFlyingCashAdapter, FlyingCashAdapterStorage,
             require(err == 0, "FlyingCashAdapterFilda: repayBorrow failed");
         }
 
-        err = CErc20(ftoken).mint(_amount.sub(borrowAmount));
+        err = CErc20(ftoken).mint(amount.sub(borrowAmount));
         require(err == 0, "FlyingCashAdapterFilda: mint failed");
     }
 
     function withdraw(uint _amount) external override {
         require(whitelist[msg.sender], "FlyingCashAdapterFilda: sender is not in whitelist");
 
-        uint savingAmount = getSavingBalance();
-        uint err;
-
-        if (!loanOpened || savingAmount >= _amount) {
-            require(_amount <= savingAmount, "FlyingCashAdapterFilda: Insufficient funds in the treasury");
-
-            err = CErc20(ftoken).redeemUnderlying(_amount);
-            require(err == 0, "FlyingCashAdapterFilda: redeem failed");
-            ERC20(token).safeTransfer(msg.sender, _amount);
-            return;
-        }
-
+        uint savingAmount = CErc20(ftoken).balanceOfUnderlying(address(this));
         if (savingAmount > 0) {
-            err = CErc20(ftoken).redeemUnderlying(savingAmount);
-            require(err == 0, "FlyingCashAdapterFilda: redeem failed");
+            // not check error code, if redeem failed, transfer liquity to user
+            CErc20(ftoken).redeemUnderlying(savingAmount > _amount ? _amount : savingAmount);
+        }
+        uint256 balance = ERC20(token).balanceOf(address(this));
+
+        if (!loanOpened) {
+            require(balance >= _amount, "FlyingCashAdapterFilda: not enough token");
+        } else if (balance < _amount) {
+            uint err = CErc20(ftoken).borrow(_amount.sub(balance));
+            require(err == 0, "FlyingCashAdapterFilda: borrow failed");
         }
 
-        err = CErc20(ftoken).borrow(_amount.sub(savingAmount));
-        require(err == 0, "FlyingCashAdapterFilda: borrow failed");
         ERC20(token).safeTransfer(msg.sender, _amount);
     }
 
     function getSavingBalance() public override returns (uint) {
-        return CErc20(ftoken).balanceOfUnderlying(address(this));
+        return CErc20(ftoken).balanceOfUnderlying(address(this)).add(ERC20(token).balanceOf(address(this)));
     }
 
     function getBorrowBalance() public override returns (uint) {

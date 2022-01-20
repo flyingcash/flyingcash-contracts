@@ -2,6 +2,7 @@ const Voucher = artifacts.require("Voucher");
 const FlyingCashProxy = artifacts.require("FlyingCashProxy");
 const FlyingCash = artifacts.require("FlyingCash");
 const FeeManager = artifacts.require("FeeManager");
+const FeeManagerNoAsset = artifacts.require("FeeManagerNoAsset");
 const FlyingCashAdapterFilda = artifacts.require("FlyingCashAdapterFilda");
 const FlyingCashAdapterNoAsset = artifacts.require("FlyingCashAdapterNoAsset");
 
@@ -26,7 +27,7 @@ module.exports = async function (deployer, network, accounts) {
     console.log("voucher address: ", Voucher.address);
 
     console.log("deploying FeeManager...");
-    await deployer.deploy(FeeManager);
+    await deployer.deploy(FeeManager, 1000000, 200000000);
     console.log("FeeManager address: ", FeeManager.address);
 
 
@@ -60,14 +61,14 @@ module.exports = async function (deployer, network, accounts) {
     await deployer.deploy(Voucher, flyingCash.address, "Voucher HUSD ESC TEST", "vHusdEscT");
     console.log("voucher address: ", Voucher.address);
 
-    console.log("deploying FeeManager...");
-    await deployer.deploy(FeeManager);
-    console.log("FeeManager address: ", FeeManager.address);
-
 
     console.log("deploying Adapter...");
     await deployer.deploy(FlyingCashAdapterNoAsset, "HUSD ESC TEST", "husdEscT");
     console.log("FlyingCashAdapterNoAsset address: ", FlyingCashAdapterNoAsset.address);
+
+    console.log("deploying FeeManager...");
+    await deployer.deploy(FeeManagerNoAsset, FlyingCashAdapterNoAsset.address);
+    console.log("FeeManagerNoAsset address: ", FeeManagerNoAsset.address);
 
     console.log("init FlyingCash...");
     await flyingCash.init(
@@ -75,7 +76,7 @@ module.exports = async function (deployer, network, accounts) {
       FlyingCashAdapterNoAsset.address, //_adapter
       FlyingCashAdapterNoAsset.address, // _lockToken
       Voucher.address,    // _voucher
-      FeeManager.address);
+      FeeManagerNoAsset.address);
 
     console.log("set adapter whitelist...");
     const adapter = await FlyingCashAdapterNoAsset.deployed();
