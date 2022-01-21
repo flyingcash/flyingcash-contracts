@@ -53,11 +53,11 @@ contract FlyingCash is BaseFlyingCash {
         // save to adapter
         IFlyingCashAdapter(adapter).deposit(depositeAmount);
 
+        uint256 mintAmount = amount.mul(10 ** uint(voucher.decimals())).div(10 ** uint(lockToken.decimals()));
         // mint token
-        // voucher.mint(msg.sender, amount);
-        voucher.mint(address(this), amount);
+        voucher.mint(address(this), mintAmount);
 
-        ITokenBridge(bridge).relayTokens(voucher, _account, amount);
+        ITokenBridge(bridge).relayTokens(voucher, _account, mintAmount);
     }
 
     /* @dev exchange voucher for token.
@@ -71,9 +71,9 @@ contract FlyingCash is BaseFlyingCash {
 
         ERC20(_voucher).safeTransferFrom(msg.sender, address(this), _amount);
 
-        uint amount = _amount;
+        uint amount = _amount.mul(10 ** uint(lockToken.decimals())).div(10 ** uint(ERC20(_voucher).decimals()));
         if (feeManager != address(0)) {
-            (uint fee,) = IFeeManager(feeManager).getWithdrawFee(msg.sender, voucherNetwork[_voucher], _amount);
+            (uint fee,) = IFeeManager(feeManager).getWithdrawFee(msg.sender, voucherNetwork[_voucher], amount);
             amount = amount.sub(fee);
         }
 
@@ -91,12 +91,16 @@ contract FlyingCash is BaseFlyingCash {
         uint savingBalance = IFlyingCashAdapter(adapter).getSavingBalance();
         uint borrowBalance = IFlyingCashAdapter(adapter).getBorrowBalance();
 
-        uint vocherSupply = voucher.totalSupply();
+        uint multiple = 10 ** uint(lockToken.decimals());
+
+        uint vocherSupply = voucher.totalSupply().mul(multiple).div(10 ** uint(voucher.decimals()));
         uint voucherBalance;
         for (uint8 i = 0; i < voucherSet.length(); i++) {
             address token = voucherSet.at(i);
             if (token == address(voucher)) continue;
-            voucherBalance = voucherBalance.add(ERC20(token).balanceOf(address(this)));
+
+            uint balance = ERC20(token).balanceOf(address(this)).mul(multiple).div(10 ** uint(ERC20(token).decimals()));
+            voucherBalance = voucherBalance.add(balance);
         }
 
         return savingBalance.add(voucherBalance).sub(vocherSupply).sub(borrowBalance);
