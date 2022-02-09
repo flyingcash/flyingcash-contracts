@@ -18,7 +18,9 @@
     FlyingCashProxy constructor parameter, the upgrade admin account of proxy.
 
 * --gov
-    FlyingCash init parameter, the governance of flyingcash. <font color=red>The governance account and the admin account cannot be the same.</font>
+    FlyingCash init parameter, the governance of flyingcash. 
+    
+    <font color=red>The governance account and the admin account cannot be the same. </font>
 
 * --feelowerLimit --feeupperLimit
     FeeManager constructor parameter, the lowerLimit and the upperLimit amount of token for FeeManager.
