@@ -13,7 +13,8 @@
 * `--admin` - FlyingCashProxy constructor parameter, the upgrade admin account of proxy.
 
 * `--gov` - FlyingCash init parameter, the governance of flyingcash. 
-    <span style="color: red;">The governance account and the admin account cannot be the same. </span>
+    
+    ![#f03c15] `The governance account and the admin account cannot be the same.`
 
 * `--feelowerLimit --feeupperLimit` - FeeManager constructor parameter, the lowerLimit and the upperLimit amount of token for FeeManager.
 
