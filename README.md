@@ -14,7 +14,7 @@
 
 * `--gov` - FlyingCash init parameter, the governance of flyingcash. 
     
-    ![#f03c15] `The governance account and the admin account cannot be the same.`
+    ![#f03c15](https://via.placeholder.com/15/f03c15/000000?text=+) `The governance account and the admin account cannot be the same.`
 
 * `--feelowerLimit --feeupperLimit` - FeeManager constructor parameter, the lowerLimit and the upperLimit amount of token for FeeManager.
 
