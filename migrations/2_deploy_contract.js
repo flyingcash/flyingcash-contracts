@@ -6,28 +6,38 @@ const FeeManagerNoAsset = artifacts.require("FeeManagerNoAsset");
 const FlyingCashAdapterFilda = artifacts.require("FlyingCashAdapterFilda");
 const FlyingCashAdapterNoAsset = artifacts.require("FlyingCashAdapterNoAsset");
 
+const argv = require('minimist')(process.argv.slice(2),
+        {string: ['ftoken', 'lockToken', 'vsymbol', 'vname', 'admin', 'gov', 'tokenName', 'tokenSymbol']});
+
 module.exports = async function (deployer, network, accounts) {
   const zeroAddr = "0x0000000000000000000000000000000000000000";
 
+  console.log("argv: ", argv);
   if (network == "heco") {
 
-    const fToken = '0xB16Df14C53C4bcfF220F4314ebCe70183dD804c0'; // fHUSD
-    const lockToken = '0x0298c2b32eae4da002a15f36fdf7615bea3da047'; // HUSD
+    const ftoken = argv['ftoken'];
+    const lockToken = argv['lockToken'];
+    const vsymbol = argv['vsymbol'];
+    const vname = argv['vname'];
+    const admin = argv['admin'];
+    const gov = argv['gov'];
+    const feelowerLimit = argv['feelowerLimit'];
+    const feeupperLimit = argv['feeupperLimit'];
 
     console.log("deploying FlyingCash...");
     await deployer.deploy(FlyingCash);
     console.log("FlyingCash implement address: ", FlyingCash.address);
-    await deployer.deploy(FlyingCashProxy, FlyingCash.address, accounts[1], []);
+    await deployer.deploy(FlyingCashProxy, FlyingCash.address, admin, []);
     console.log("FlyingCash proxy address: ", FlyingCashProxy.address);
 
     const flyingCash = await FlyingCash.at(FlyingCashProxy.address);
 
     console.log("deploying Voucher...");
-    await deployer.deploy(Voucher, flyingCash.address, "Voucher HUSD TEST", "vHustT");
+    await deployer.deploy(Voucher, flyingCash.address, vname, vsymbol);
     console.log("voucher address: ", Voucher.address);
 
     console.log("deploying FeeManager...");
-    await deployer.deploy(FeeManager, 1000000, 200000000);
+    await deployer.deploy(FeeManager, feelowerLimit, feeupperLimit);
     console.log("FeeManager address: ", FeeManager.address);
 
 
@@ -37,7 +47,7 @@ module.exports = async function (deployer, network, accounts) {
 
     console.log("init FlyingCash...");
     await flyingCash.init(
-      accounts[0],    // _governance
+      gov,    // _governance
       FlyingCashAdapterFilda.address, //_adapter
       lockToken,    // _lockToken
       Voucher.address, // _voucher
@@ -48,22 +58,28 @@ module.exports = async function (deployer, network, accounts) {
     await adapter.setWhitelist(FlyingCashProxy.address, true);
 
   } else if (network == "esc") {
+    const vsymbol = argv['vsymbol'];
+    const vname = argv['vname'];
+    const admin = argv['admin'];
+    const gov = argv['gov'];
+    const tokenName = argv['tokenName'];
+    const tokenSymbol = argv['tokenSymbol'];
 
     console.log("deploying FlyingCash...");
     await deployer.deploy(FlyingCash);
     console.log("FlyingCash implement address: ", FlyingCash.address);
-    await deployer.deploy(FlyingCashProxy, FlyingCash.address, accounts[1], []);
+    await deployer.deploy(FlyingCashProxy, FlyingCash.address, admin, []);
     console.log("FlyingCash proxy address: ", FlyingCashProxy.address);
 
     const flyingCash = await FlyingCash.at(FlyingCashProxy.address);
 
     console.log("deploying Voucher...");
-    await deployer.deploy(Voucher, flyingCash.address, "Voucher HUSD ESC TEST", "vHusdEscT");
+    await deployer.deploy(Voucher, flyingCash.address, vname, vsymbol);
     console.log("voucher address: ", Voucher.address);
 
 
     console.log("deploying Adapter...");
-    await deployer.deploy(FlyingCashAdapterNoAsset, "HUSD ESC TEST", "husdEscT");
+    await deployer.deploy(FlyingCashAdapterNoAsset, tokenName, tokenSymbol);
     console.log("FlyingCashAdapterNoAsset address: ", FlyingCashAdapterNoAsset.address);
 
     console.log("deploying FeeManager...");
@@ -72,7 +88,7 @@ module.exports = async function (deployer, network, accounts) {
 
     console.log("init FlyingCash...");
     await flyingCash.init(
-      accounts[0],    // _governance
+      gov,    // _governance
       FlyingCashAdapterNoAsset.address, //_adapter
       FlyingCashAdapterNoAsset.address, // _lockToken
       Voucher.address,    // _voucher
