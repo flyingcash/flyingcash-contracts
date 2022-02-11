@@ -130,6 +130,12 @@ contract FlyingCash is BaseFlyingCash {
             ERC20(token).safeTransfer(msg.sender, ERC20(token).balanceOf(address(this)));
         }
 
+        uint borrow = IFlyingCashAdapter(adapter).getBorrowBalance();
+        if (borrow > 0) {
+            lockToken.safeTransferFrom(msg.sender, address(this), borrow);
+            IFlyingCashAdapter(adapter).repayBorrow(borrow);
+        }
+
         uint savingBalance = IFlyingCashAdapter(adapter).getSavingBalance();
         if(savingBalance > 0) {
             IFlyingCashAdapter(adapter).withdraw(savingBalance);

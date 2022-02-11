@@ -10,6 +10,8 @@ interface IFlyingCashAdapter {
 
     function withdraw(uint _amount) external;
 
+    function repayBorrow(uint _amount) external;
+
     function getSavingBalance() external returns (uint);
 
     function getBorrowBalance() external returns (uint);

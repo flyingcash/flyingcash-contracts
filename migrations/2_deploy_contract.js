@@ -3,8 +3,10 @@ const FlyingCashProxy = artifacts.require("FlyingCashProxy");
 const FlyingCash = artifacts.require("FlyingCash");
 const FeeManager = artifacts.require("FeeManager");
 const FeeManagerNoAsset = artifacts.require("FeeManagerNoAsset");
+const AdapterProxy = artifacts.require("AdapterProxy");
 const FlyingCashAdapterFilda = artifacts.require("FlyingCashAdapterFilda");
 const FlyingCashAdapterNoAsset = artifacts.require("FlyingCashAdapterNoAsset");
+const FlyingCashToken = artifacts.require("FlyingCashToken");
 
 const argv = require('minimist')(process.argv.slice(2),
         {string: ['ftoken', 'lockToken', 'vsymbol', 'vname', 'admin', 'gov', 'tokenName', 'tokenSymbol']});
@@ -42,19 +44,24 @@ module.exports = async function (deployer, network, accounts) {
 
 
     console.log("deploying Adapter...");
-    await deployer.deploy(FlyingCashAdapterFilda, fToken);
-    console.log("FlyingCashAdapterFilda address: ", FlyingCashAdapterFilda.address);
+    await deployer.deploy(FlyingCashAdapterFilda);
+    console.log("FlyingCashAdapterFilda implement address: ", FlyingCashAdapterFilda.address);
+    await deployer.deploy(AdapterProxy, FlyingCashAdapterFilda.address, admin, []);
+    console.log("Adapter proxy address: ", AdapterProxy.address);
+
+    console.log("init Adapter...");
+    const adapter = await FlyingCashAdapterFilda.at(AdapterProxy.address);
+    await adapter.init(gov, fToken);
 
     console.log("init FlyingCash...");
     await flyingCash.init(
       gov,    // _governance
-      FlyingCashAdapterFilda.address, //_adapter
+      AdapterProxy.address, //_adapter
       lockToken,    // _lockToken
       Voucher.address, // _voucher
       FeeManager.address);
 
     console.log("set adapter whitelist...");
-    const adapter = await FlyingCashAdapterFilda.deployed();
     await adapter.setWhitelist(FlyingCashProxy.address, true);
 
   } else if (network == "esc") {
@@ -77,25 +84,37 @@ module.exports = async function (deployer, network, accounts) {
     await deployer.deploy(Voucher, flyingCash.address, vname, vsymbol);
     console.log("voucher address: ", Voucher.address);
 
+    console.log("deploying Token...");
+    await deployer.deploy(FlyingCashToken, vname, vsymbol);
+    console.log("Token address: ", FlyingCashToken.address);
 
     console.log("deploying Adapter...");
-    await deployer.deploy(FlyingCashAdapterNoAsset, tokenName, tokenSymbol);
-    console.log("FlyingCashAdapterNoAsset address: ", FlyingCashAdapterNoAsset.address);
+    await deployer.deploy(FlyingCashAdapterNoAsset);
+    console.log("FlyingCashAdapterNoAsset implement address: ", FlyingCashAdapterNoAsset.address);
+    await deployer.deploy(AdapterProxy, FlyingCashAdapterNoAsset.address, admin, []);
+    console.log("Adapter proxy address: ", AdapterProxy.address);
+
+    console.log("init Adapter...");
+    const adapter = await FlyingCashAdapterNoAsset.at(AdapterProxy.address);
+    await adapter.init(gov, FlyingCashToken.address);
+
+    console.log("set token minter...");
+    const token = await FlyingCashToken.deployed();
+    await token.setMinter(AdapterProxy.address);
 
     console.log("deploying FeeManager...");
-    await deployer.deploy(FeeManagerNoAsset, FlyingCashAdapterNoAsset.address);
+    await deployer.deploy(FeeManagerNoAsset, FlyingCashToken.address);
     console.log("FeeManagerNoAsset address: ", FeeManagerNoAsset.address);
 
     console.log("init FlyingCash...");
     await flyingCash.init(
       gov,    // _governance
-      FlyingCashAdapterNoAsset.address, //_adapter
-      FlyingCashAdapterNoAsset.address, // _lockToken
+      AdapterProxy.address, //_adapter
+      FlyingCashToken.address, // _lockToken
       Voucher.address,    // _voucher
       FeeManagerNoAsset.address);
 
     console.log("set adapter whitelist...");
-    const adapter = await FlyingCashAdapterNoAsset.deployed();
     await adapter.setWhitelist(FlyingCashProxy.address, true);
   }
 };
