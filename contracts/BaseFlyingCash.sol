@@ -4,12 +4,11 @@ pragma experimental ABIEncoderV2;
 
 import "./GovernableInitiable.sol";
 import "./interface/IFlyingCash.sol";
-import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 // the FlyingCash implement for filda
-abstract contract BaseFlyingCash is IFlyingCash, FlyingCashStorage, GovernableInitiable, Pausable {
+abstract contract BaseFlyingCash is IFlyingCash, FlyingCashStorage, GovernableInitiable, PausableUpgradeable {
     using Address for address;
     using SafeERC20 for ERC20;
     using SafeERC20 for Voucher;
@@ -17,6 +16,7 @@ abstract contract BaseFlyingCash is IFlyingCash, FlyingCashStorage, GovernableIn
 
     function init(address _governance, address _adapter, address _lockToken, address _voucher, address _feeManager) public virtual initializer {
         GovernableInitiable.initialize(_governance);
+        PausableUpgradeable.__Pausable_init();
 
         require(_lockToken != address(0) && _voucher != address(0), "FlyingCash: invalid param");
 

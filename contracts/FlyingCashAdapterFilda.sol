@@ -14,7 +14,7 @@ contract FlyingCashAdapterFilda is IFlyingCashAdapter, FlyingCashAdapterStorage,
     address public ftoken;
     address public token;
 
-    bool public loanOpened = false;
+    bool public loanOpened;
 
     // liquity in adapter
     uint256 public liquity;

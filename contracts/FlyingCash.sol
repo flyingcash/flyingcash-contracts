@@ -16,7 +16,7 @@ contract FlyingCash is BaseFlyingCash {
     using SafeMath for uint256;
     using SafeERC20 for Voucher;
 
-    uint immutable WITHDRAW_PERIOD = 3 days;
+    uint public constant WITHDRAW_PERIOD = 3 days;
 
     function init(address _governance, address _adapter, address _lockToken, address _voucher, address _feeManager) public override initializer {
         BaseFlyingCash.init(_governance, _adapter, _lockToken, _voucher, _feeManager);

@@ -15,9 +15,7 @@ contract Voucher is ERC20Burnable, BoringOwnable {
         _;
     }
 
-    constructor (address _flyingCash, string memory name_, string memory symbol_) public ERC20(name_, symbol_) {
-        require(_flyingCash != address(0), "Voucher: flashCash address is zero");
-        flyingCash = _flyingCash;
+    constructor (string memory name_, string memory symbol_) public ERC20(name_, symbol_) {
     }
 
     function setFlyingCash(address _flyingCash) public onlyOwner {
