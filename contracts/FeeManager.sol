@@ -14,18 +14,24 @@ contract FeeManager is IFeeManager, BoringOwnable {
     uint public feeUpperLimit;
     uint public feeLowerLimit;
 
+    event FeeChanged(uint256 _fee);
+    event FeeLimitChanged(uint256 _lowerLimit, uint256 _upperLimit);
+
     constructor(uint lowerLimit, uint upperLimit) public {
         feeLowerLimit = lowerLimit;
         feeUpperLimit = upperLimit;
     }
 
     function setFee(uint fee) external onlyOwner {
+        require(fee < 3000, "FeeManager: basice fee is lower than 30%");
         basicFee = fee;
+        emit FeeChanged(fee);
     }
 
     function setLimit(uint lowerLimit, uint upperLimit) external onlyOwner {
         feeLowerLimit = lowerLimit;
         feeUpperLimit = upperLimit;
+        emit FeeLimitChanged(lowerLimit, upperLimit);
     }
 
     function getDepositeFee(address account, string memory network, uint amount) external override returns (uint, bool) {

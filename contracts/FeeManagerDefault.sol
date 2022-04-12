@@ -2,9 +2,8 @@
 pragma solidity ^0.6.0;
 
 import "./interface/IFeeManager.sol";
-import "./BoringOwnable.sol";
 
-contract FeeManagerDefault is IFeeManager, BoringOwnable {
+contract FeeManagerDefault is IFeeManager {
 
     function getDepositeFee(address account, string memory network, uint amount) external override returns (uint, bool) {
         account;network;amount;

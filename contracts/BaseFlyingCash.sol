@@ -14,14 +14,13 @@ abstract contract BaseFlyingCash is IFlyingCash, FlyingCashStorage, GovernableIn
     using SafeERC20 for Voucher;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    function init(address _governance, address _adapter, address _lockToken, address _feeManager,
+    function init(address _governance, address _lockToken, address _feeManager,
             string memory _voucherName, string memory _voucherSymbol) public virtual initializer {
         GovernableInitiable.initialize(_governance);
         PausableUpgradeable.__Pausable_init();
 
         require(_lockToken != address(0), "FlyingCash: invalid param");
 
-        adapter = _adapter;
         lockToken = ERC20(_lockToken);
         voucher = new Voucher(address(this), _voucherName, _voucherSymbol);
         feeManager = _feeManager;
@@ -46,9 +45,12 @@ abstract contract BaseFlyingCash is IFlyingCash, FlyingCashStorage, GovernableIn
 
     function setAdapter(address _adapter) external override onlyGovernance {
         require(_adapter != address(0), "FlyingCash: adapter is zero address");
-        lockToken.safeApprove(adapter, 0);
+        if (adapter != address(0)) {
+            lockToken.safeApprove(adapter, 0);
+        }
         adapter = _adapter;
         lockToken.safeApprove(adapter, uint(-1));
+        emit AdapterChanged(_adapter);
     }
 
     function setNetworkBridge(string calldata _name, address _bridge) external override onlyGovernance {
@@ -72,6 +74,7 @@ abstract contract BaseFlyingCash is IFlyingCash, FlyingCashStorage, GovernableIn
             if (_accepts[i]) {
                 if (!voucherSet.contains(_vouchers[i])) {
                     voucherSet.add(_vouchers[i]);
+                    emit VoucherAdded(_vouchers[i]);
                 }
                 voucherNetwork[_vouchers[i]] = _networks[i];
             } else {
@@ -79,6 +82,7 @@ abstract contract BaseFlyingCash is IFlyingCash, FlyingCashStorage, GovernableIn
                 require(_vouchers[i] != address(voucher), "FlyingCash: can not remove the default voucher");
                 voucherSet.remove(_vouchers[i]);
                 voucherNetwork[_vouchers[i]] = '';
+                emit VoucherRemoved(_vouchers[i]);
             }
         }
     }

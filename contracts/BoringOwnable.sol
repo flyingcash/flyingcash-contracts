@@ -22,21 +22,22 @@ contract BoringOwnable is BoringOwnableData {
         emit OwnershipTransferred(address(0), msg.sender);
     }
 
-    // F1 - F9: OK
-    // C1 - C21: OK
-    function transferOwnership(address newOwner, bool direct, bool renounce) public onlyOwner {
-        if (direct) {
-            // Checks
-            require(newOwner != address(0) || renounce, "Ownable: zero address");
+    function renounceOwnership() public onlyOwner {
+        emit OwnershipTransferred(owner, address(0));
+        owner = address(0);
+        pendingOwner = address(0);
+    }
 
-            // Effects
-            emit OwnershipTransferred(owner, newOwner);
-            owner = newOwner;
-            pendingOwner = address(0);
-        } else {
-            // Effects
-            pendingOwner = newOwner;
-        }
+    function transferOwnership(address newOwner) public onlyOwner {
+        require(address(0) != newOwner, "Ownable: pendingOwner set to the zero address.");
+        pendingOwner = newOwner;
+    }
+
+    function transferOwnershipDirectly(address newOwner) public onlyOwner {
+        require(address(0) != newOwner, "Ownable: not allowed to transfer owner to address(0)");
+        owner = newOwner;
+        emit OwnershipTransferred(owner, newOwner);
+        pendingOwner = address(0);
     }
 
     // F1 - F9: OK

@@ -18,14 +18,13 @@ contract FlyingCash is BaseFlyingCash {
 
     uint public constant WITHDRAW_PERIOD = 3 days;
 
-    function init(address _governance, address _adapter, address _lockToken, address _feeManager,
+    function init(address _governance, address _lockToken, address _feeManager,
             string memory _voucherName, string memory _voucherSymbol) public override initializer {
-        BaseFlyingCash.init(_governance, _adapter, _lockToken, _feeManager, _voucherName, _voucherSymbol);
+        BaseFlyingCash.init(_governance, _lockToken, _feeManager, _voucherName, _voucherSymbol);
 
         if (feeManager != address(0)) {
             lockToken.safeApprove(feeManager, uint(-1));
         }
-        lockToken.safeApprove(adapter, uint(-1));
     }
 
     /* @dev relay lockToken, mint voucher and bridge voucher to another chain.

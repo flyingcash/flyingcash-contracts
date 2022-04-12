@@ -8,10 +8,13 @@ import "../Voucher.sol";
 
 interface IFlyingCash {
 
+    event AdapterChanged(address indexed _adapter);
     event FeeManagerChanged(address indexed _feeManager);
     event BridgeChanged(string _name, address _bridge);
     event ReserveAdded(address _account, uint256 indexed _amount);
     event ReserveWithdrawn(address _account, uint256 indexed _amount);
+    event VoucherAdded(address indexed _voucher);
+    event VoucherRemoved(address indexed _voucher);
 
     function setFeeManager(address _feeManager) external;
 

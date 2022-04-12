@@ -2,6 +2,7 @@
 pragma solidity ^0.6.0;
 
 import "./interface/IFlyingCashAdapter.sol";
+import "./interface/IFlyingCash.sol";
 import "./FlyingCashToken.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
@@ -18,11 +19,10 @@ contract FlyingCashAdapterNoAsset is IFlyingCashAdapter, FlyingCashAdapterStorag
         _;
     }
 
-    function init(address _token, address _flyingCash) public initializer {
-        require(_token != address(0), "FlyingCashAdapterNoAsset: token is zero address");
-        require(_flyingCash.isContract(), "Voucher: flashCash address is not contract");
+    function init(address _flyingCash) public initializer {
+        require(_flyingCash.isContract(), "FlyingCashAdapterNoAsset: flashCash address is not contract");
         flyingCash = _flyingCash;
-        token = FlyingCashToken(_token);
+        token = FlyingCashToken(address(FlyingCashStorage(_flyingCash).lockToken()));
     }
 
     function deposit(uint _amount) external override onlyFlyingCash {

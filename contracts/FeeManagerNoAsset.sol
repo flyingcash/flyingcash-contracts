@@ -19,18 +19,17 @@ contract FeeManagerNoAsset is IFeeManager, BoringOwnable {
 
     uint256 constant FEE_DENOMINATOR = 10000;
 
+    event FeeChanged(uint256 _depositeFee, uint256 _withdrawReward);
+
     constructor(address _token) public {
         reserveToken = ERC20(_token);
     }
 
-    function setReserveToken(address _token) external onlyOwner {
-        require(_token != address(0), "FeeManagerNoAsset: reserve token address is zero");
-        reserveToken = ERC20(_token);
-    }
-
     function setFee(uint256 _depositeFee, uint256 _withdrawReward) external onlyOwner {
+        require(_depositeFee < 3000 && _withdrawReward < 3000, "FeeManagerNoAsset: fee is lower than 30%");
         depositFeeMolecular = _depositeFee;
         withdrawRewardMolecular = _withdrawReward;
+        emit FeeChanged(_depositeFee, _withdrawReward);
     }
 
     function getDepositeFee(address account, string calldata network, uint amount) external override returns (uint, bool) {
