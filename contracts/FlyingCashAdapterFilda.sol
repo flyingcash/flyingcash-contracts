@@ -2,14 +2,17 @@
 pragma solidity ^0.6.0;
 
 import "./interface/IFlyingCashAdapter.sol";
+import "./interface/IFlyingCash.sol";
 import "./compound/CErc20.sol";
+import "./GovernableInitiable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "./GovernableInitiable.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 contract FlyingCashAdapterFilda is IFlyingCashAdapter, FlyingCashAdapterStorage, GovernableInitiable {
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
+    using Address for address;
 
     address public ftoken;
     address public token;
@@ -22,19 +25,22 @@ contract FlyingCashAdapterFilda is IFlyingCashAdapter, FlyingCashAdapterStorage,
     event LoanOpend(bool indexed _open);
     event LiquityChanged(uint256 indexed _liquity);
 
-    function init(address _governance, address _ftoken) public initializer {
+    modifier onlyFlyingCash {
+        require(msg.sender == flyingCash, "FlyingCashAdapterFilda: onlyFlyingCash");
+        _;
+    }
+
+    function init(address _governance, address _ftoken, address _flyingCash) public initializer {
         GovernableInitiable.initialize(_governance);
 
         require(_ftoken != address(0), "FlyingCashAdapterFilda: ftoken is zero address");
+        require(_flyingCash.isContract(), "FlyingCashAdapterFilda: flashCash address is not contract");
+        flyingCash = _flyingCash;
+
         ftoken = _ftoken;
         token = CErc20(ftoken).underlying();
+        require(token == address(FlyingCashStorage(_flyingCash).lockToken()), "FlyingCashAdapterFilda: underlying token is not lockToken");
         ERC20(token).approve(ftoken, uint(-1));
-    }
-
-    function setWhitelist(address _account, bool _enable) external override onlyGovernance {
-        require(_account != address(0), "FlyingCashAdapterFilda: account is zero address");
-        whitelist[_account] = _enable;
-        emit WhitelistChanged(_account, _enable);
     }
 
     function openLoan(bool _open) external onlyGovernance {
@@ -72,9 +78,7 @@ contract FlyingCashAdapterFilda is IFlyingCashAdapter, FlyingCashAdapterStorage,
         emit LiquityChanged(_liquity);
     }
 
-    function deposit(uint _amount) external override {
-        require(whitelist[msg.sender], "FlyingCashAdapterFilda: sender is not in whitelist");
-
+    function deposit(uint _amount) external override onlyFlyingCash {
         ERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
 
         uint256 balance = ERC20(token).balanceOf(address(this));
@@ -100,9 +104,7 @@ contract FlyingCashAdapterFilda is IFlyingCashAdapter, FlyingCashAdapterStorage,
         require(err == 0, "FlyingCashAdapterFilda: mint failed");
     }
 
-    function withdraw(uint _amount) external override {
-        require(whitelist[msg.sender], "FlyingCashAdapterFilda: sender is not in whitelist");
-
+    function withdraw(uint _amount) external override onlyFlyingCash {
         uint err;
         bool redeemFail = false;
         uint savingAmount = CErc20(ftoken).balanceOfUnderlying(address(this));

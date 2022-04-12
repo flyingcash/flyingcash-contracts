@@ -2,9 +2,6 @@
 pragma solidity ^0.6.0;
 
 interface IFlyingCashAdapter {
-    event WhitelistChanged(address _account, bool _enable);
-
-    function setWhitelist(address _account, bool _enable) external;
 
     function deposit(uint _amount) external;
 
@@ -16,5 +13,5 @@ interface IFlyingCashAdapter {
 }
 
 contract FlyingCashAdapterStorage {
-    mapping(address => bool) public whitelist;
+    address public flyingCash;
 }
