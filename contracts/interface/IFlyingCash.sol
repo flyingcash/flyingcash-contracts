@@ -8,16 +8,10 @@ import "../Voucher.sol";
 
 interface IFlyingCash {
 
-    event LockTokenChanged(address indexed _lockToken);
-    event VoucherChanged(address indexed _voucher);
     event FeeManagerChanged(address indexed _feeManager);
     event BridgeChanged(string _name, address _bridge);
     event ReserveAdded(address _account, uint256 indexed _amount);
     event ReserveWithdrawn(address _account, uint256 indexed _amount);
-
-    function setLockToken(address _lockToken) external;
-
-    function setVoucher(address _voucher) external;
 
     function setFeeManager(address _feeManager) external;
 

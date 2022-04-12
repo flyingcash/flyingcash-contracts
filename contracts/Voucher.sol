@@ -2,9 +2,10 @@
 pragma solidity ^0.6.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
-import "./BoringOwnable.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
-contract Voucher is ERC20Burnable, BoringOwnable {
+contract Voucher is ERC20Burnable {
+    using Address for address;
 
     address public flyingCash;
 
@@ -15,13 +16,9 @@ contract Voucher is ERC20Burnable, BoringOwnable {
         _;
     }
 
-    constructor (string memory name_, string memory symbol_) public ERC20(name_, symbol_) {
-    }
-
-    function setFlyingCash(address _flyingCash) public onlyOwner {
-        require(_flyingCash != address(0), "Voucher: flashCash address is zero");
-        flyingCash = _flyingCash;
-        emit FlyingCashChanged(_flyingCash);
+    constructor (address flyingcash_, string memory name_, string memory symbol_) public ERC20(name_, symbol_) {
+        require(flyingcash_.isContract(), "Voucher: flashCash address is not contract");
+        flyingCash = flyingcash_;
     }
     
     /**

@@ -14,45 +14,21 @@ abstract contract BaseFlyingCash is IFlyingCash, FlyingCashStorage, GovernableIn
     using SafeERC20 for Voucher;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    function init(address _governance, address _adapter, address _lockToken, address _voucher, address _feeManager) public virtual initializer {
+    function init(address _governance, address _adapter, address _lockToken, address _feeManager,
+            string memory _voucherName, string memory _voucherSymbol) public virtual initializer {
         GovernableInitiable.initialize(_governance);
         PausableUpgradeable.__Pausable_init();
 
-        require(_lockToken != address(0) && _voucher != address(0), "FlyingCash: invalid param");
+        require(_lockToken != address(0), "FlyingCash: invalid param");
 
         adapter = _adapter;
         lockToken = ERC20(_lockToken);
-        voucher = Voucher(_voucher);
+        voucher = new Voucher(address(this), _voucherName, _voucherSymbol);
         feeManager = _feeManager;
 
-        voucherSet.add(_voucher);
-        voucherNetwork[_voucher] = 'default';
+        voucherSet.add(address(voucher));
+        voucherNetwork[address(voucher)] = 'default';
 
-    }
-
-    function setLockToken(address _lockToken) external override onlyGovernance {
-        require(_lockToken.isContract(), "FlyingCash: lock token is not contract");
-
-        lockToken = ERC20(_lockToken);
-        if (feeManager != address(0)) {
-            lockToken.safeApprove(feeManager, uint(-1));
-        }
-        lockToken.safeApprove(adapter, uint(-1));
-
-        emit LockTokenChanged(_lockToken);
-    }
-
-    function setVoucher(address _voucher) external override onlyGovernance {
-        require(_voucher.isContract(), "FlyingCash: voucher is not contract");
-
-        if (voucherSet.contains(address(voucher))) {
-            voucherSet.remove(address(voucher));
-            voucherNetwork[address(voucher)] = '';
-        }
-        voucherSet.add(_voucher);
-        voucherNetwork[_voucher] = 'default';
-        voucher = Voucher(_voucher);
-        emit VoucherChanged(_voucher);
     }
 
     function setFeeManager(address _feeManager) external override onlyGovernance {
@@ -93,10 +69,14 @@ abstract contract BaseFlyingCash is IFlyingCash, FlyingCashStorage, GovernableIn
     function setAcceptVouchers(address[] calldata _vouchers, bool[] calldata _accepts, string[] calldata _networks) external override onlyGovernance {
         require(_vouchers.length == _accepts.length, "FlyingCash: invalid param");
         for (uint8 i = 0; i < _vouchers.length; i++) {
-            if (_accepts[i] && !voucherSet.contains(_vouchers[i])) {
-                voucherSet.add(_vouchers[i]);
+            if (_accepts[i]) {
+                if (!voucherSet.contains(_vouchers[i])) {
+                    voucherSet.add(_vouchers[i]);
+                }
                 voucherNetwork[_vouchers[i]] = _networks[i];
             } else {
+                if (!voucherSet.contains(_vouchers[i])) continue;
+                require(_vouchers[i] != address(voucher), "FlyingCash: can not remove the default voucher");
                 voucherSet.remove(_vouchers[i]);
                 voucherNetwork[_vouchers[i]] = '';
             }
