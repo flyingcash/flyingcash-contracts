@@ -36,11 +36,6 @@ contract FlyingCashAdapterNoAsset is IFlyingCashAdapter, FlyingCashAdapterStorag
         token.mint(msg.sender, _amount);
     }
 
-    function repayBorrow(uint _amount) external override {
-        _amount;
-        require(false, "FlyingCashAdapterNoAsset: repayBorrow not implemented");
-    }
-
     function getSavingBalance() public override returns (uint) {
         return 0;
     }

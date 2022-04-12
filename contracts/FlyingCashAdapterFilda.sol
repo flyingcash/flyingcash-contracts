@@ -124,15 +124,6 @@ contract FlyingCashAdapterFilda is IFlyingCashAdapter, FlyingCashAdapterStorage,
         ERC20(token).safeTransfer(msg.sender, _amount);
     }
 
-    function repayBorrow(uint _amount) external override {
-        uint borrow = getBorrowBalance();
-        uint repay = borrow > _amount ? _amount : borrow;
-
-        ERC20(token).safeTransferFrom(msg.sender, address(this), repay);
-        uint err = CErc20(ftoken).repayBorrow(repay);
-        require(err == 0, "FlyingCashAdapterFilda: repayBorrow failed");
-    }
-
     function getSavingBalance() public override returns (uint) {
         return CErc20(ftoken).balanceOfUnderlying(address(this)).add(ERC20(token).balanceOf(address(this)));
     }

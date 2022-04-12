@@ -58,14 +58,6 @@ interface IFlyingCash {
     */
     function withdrawReserve(uint256 _amount) external;
 
-    /* @dev apply for withdraw tokens, only governance.
-    */
-    function applyWithdraw() external;
-
-    /* @dev withdraw vouchers and lock token, only governance.
-    */
-    function withdraw() external;
-
     /* @dev add reserve to flyingCash, only governance.
     */
     function addReserve(uint _amount) external;
@@ -84,6 +76,4 @@ contract FlyingCashStorage {
 
     EnumerableSet.AddressSet internal voucherSet;
     mapping(address => string) public voucherNetwork;
-
-    uint applyTime;
 }

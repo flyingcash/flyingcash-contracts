@@ -124,8 +124,4 @@ abstract contract BaseFlyingCash is IFlyingCash, FlyingCashStorage, GovernableIn
         _unpause();
     }
 
-    function applyWithdraw() external override onlyGovernance {
-        applyTime = block.timestamp;
-    }
-
 }

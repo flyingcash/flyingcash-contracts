@@ -58,6 +58,7 @@ contract FlyingCash is BaseFlyingCash {
         voucher.mint(address(this), mintAmount);
 
         ITokenBridge(bridge).relayTokens(voucher, _account, mintAmount);
+        return amount;
     }
 
     /* @dev exchange voucher for token.
@@ -85,6 +86,7 @@ contract FlyingCash is BaseFlyingCash {
         IFlyingCashAdapter(adapter).withdraw(amount);
 
         lockToken.safeTransfer(msg.sender, amount);
+        return amount;
     }
 
     function getReserve() public override returns (uint) {
@@ -115,31 +117,6 @@ contract FlyingCash is BaseFlyingCash {
             IFlyingCashAdapter(adapter).withdraw(amount);
             lockToken.safeTransfer(governance(), amount);
             emit ReserveAdded(governance(), amount);
-        }
-    }
-
-    /* @dev withdraw vouchers and lock token, only governance.
-    */
-    function withdraw() external override onlyGovernance {
-        require(applyTime != 0 && block.timestamp >= applyTime.add(WITHDRAW_PERIOD), "FlyingCash: cannot withdraw");
-        applyTime = 0;
-
-        for (uint8 i = 0; i < voucherSet.length(); i++) {
-            address token = voucherSet.at(i);
-            if (token == address(voucher)) continue;
-            ERC20(token).safeTransfer(msg.sender, ERC20(token).balanceOf(address(this)));
-        }
-
-        uint borrow = IFlyingCashAdapter(adapter).getBorrowBalance();
-        if (borrow > 0) {
-            lockToken.safeTransferFrom(msg.sender, address(this), borrow);
-            IFlyingCashAdapter(adapter).repayBorrow(borrow);
-        }
-
-        uint savingBalance = IFlyingCashAdapter(adapter).getSavingBalance();
-        if(savingBalance > 0) {
-            IFlyingCashAdapter(adapter).withdraw(savingBalance);
-            lockToken.safeTransfer(msg.sender, savingBalance);
         }
     }
 
