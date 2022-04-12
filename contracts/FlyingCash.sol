@@ -3,7 +3,6 @@ pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import "./BaseFlyingCash.sol";
-import "./compound/CErc20.sol";
 import "./interface/IFeeManager.sol";
 import "./interface/IFlyingCashAdapter.sol";
 import "./interface/ITokenBridge.sol";
@@ -116,7 +115,7 @@ contract FlyingCash is BaseFlyingCash {
             uint amount = reserve > _amount ? _amount : reserve;
             IFlyingCashAdapter(adapter).withdraw(amount);
             lockToken.safeTransfer(governance(), amount);
-            emit ReserveAdded(governance(), amount);
+            emit ReserveWithdrawn(governance(), amount);
         }
     }
 

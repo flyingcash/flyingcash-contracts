@@ -15,7 +15,7 @@ contract FlyingCashAdapterNoAsset is IFlyingCashAdapter, FlyingCashAdapterStorag
     FlyingCashToken public token;
 
     modifier onlyFlyingCash {
-        require(msg.sender == flyingCash, "FlyingCashAdapterFilda: onlyFlyingCash");
+        require(msg.sender == flyingCash, "FlyingCashAdapterNoAsset: onlyFlyingCash");
         _;
     }
 
