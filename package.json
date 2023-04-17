@@ -12,7 +12,7 @@
   "author": "filda",
   "license": "MIT",
   "dependencies": {
-    "@openzeppelin/contracts": "^3.4.1",
+    "@openzeppelin/contracts": "^4.8.3",
     "@openzeppelin/contracts-upgradeable": "^3.4.2",
     "minimist": "^1.2.5"
   },
